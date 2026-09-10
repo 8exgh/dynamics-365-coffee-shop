@@ -9,10 +9,13 @@ Data: /opt/dynamics-365-coffee-shop/data
 Config: /opt/dynamics-365-coffee-shop/config/runtime.env
 Backups: /opt/dynamics-365-coffee-shop/backups
 Health: http://127.0.0.1:3067/api/health
+Public URL: https://d365-coffee-shop.fusenv.com
+GitHub environment: d365-coffee-shop
 Tunnel origin: http://192.168.4.56:3067
 
 Source repository secrets: DEPLOY_TOKEN
-Devops required secrets: READ_PACKAGES_PAT, COFFEE_ADMIN_PASSWORD, COFFEE_SESSION_SECRET
+Devops repository secret: READ_PACKAGES_PAT
+Devops environment secrets: COFFEE_ADMIN_PASSWORD, COFFEE_SESSION_SECRET
 Optional cashier secret: COFFEE_CASHIER_PASSWORD
 Optional online Business Central secrets: COFFEE_BC_TENANT_ID, COFFEE_BC_COMPANY_ID, COFFEE_BC_CLIENT_ID, COFFEE_BC_CLIENT_SECRET
 Optional devops variables: COFFEE_BC_ENVIRONMENT, COFFEE_BC_WEB_URL, COFFEE_BC_ALLOW_WRITES, COFFEE_SECURE_COOKIES
@@ -22,8 +25,8 @@ The devops workflow accepts an immutable digest or sha tag for deployment or rol
 The deployment script checks for port conflicts, probes a candidate, backs up SQLite, and restores the prior container if the replacement is unhealthy.
 The prior image container remains stopped as sean-web-dynamics-365-coffee-shop-previous until the next deployment.
 
-Set an HTTPS Cloudflare Tunnel hostname to the origin above before using the default secure-cookie deployment.
+Configure the hostname using configure-dynamics-365-coffee-shop.yml with operation=route after the first successful deployment.
 For deliberate LAN-only HTTP access, set COFFEE_SECURE_COOKIES=false.
-No Cloudflare route is created automatically.
+Subsequent application deployments preserve the existing Cloudflare route.
 
 The Linux container is a practice and integration companion. Microsoft Business Central itself runs in a Windows Docker sandbox or Microsoft online environment.

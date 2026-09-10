@@ -1,6 +1,6 @@
 # Deployment
 
-The source workspace and the sibling devops checkout contain all required deployment files. They are local changes until committed and pushed to their GitHub repositories. No public DNS route or Microsoft environment is created by preparing these files.
+Source: [8exgh/dynamics-365-coffee-shop](https://github.com/8exgh/dynamics-365-coffee-shop). Deployment: [8exgh/devops](https://github.com/8exgh/devops). The Linux application targets Server7 at `https://d365-coffee-shop.fusenv.com`. Microsoft Business Central requires a separate online environment or Windows sandbox.
 
 ## GitHub configuration
 
@@ -29,7 +29,7 @@ Never copy the generated local `.env` into Git. To use its random values for dep
 
 ## Server7
 
-The runner needs Linux x64, labels `self-hosted`, `linux`, `x64`, and `server7`, Docker, Python 3, and the existing ability to create `/opt` service directories through sudo. It uses port 3067, which was unused in the reference workflows when the files were prepared. The deployment checks running containers for collisions again at deployment time.
+The runner needs Linux x64, labels `self-hosted`, `linux`, `x64`, and `server7`, Docker, and Python 3. The deployment initializes its own bind mount through Docker, matching the runner's permissions. It uses port 3067; port 3065 is assigned to another application on Server7. The deployment checks running containers for collisions again at deployment time.
 
 The workflow creates:
 
@@ -44,7 +44,13 @@ The image runs as UID/GID 1000. The config file is mode 0600. Image references m
 
 A temporary candidate starts with an isolated database and randomly assigned loopback port. Only after it becomes healthy does the deployment back up the existing SQLite database and replace the current service. A failed replacement restarts the previous container against the preserved data directory. The current schema is additive; future incompatible schema migrations must include an explicit data rollback strategy.
 
-The app publishes on Server7 port 3067 for the existing Cloudflare Tunnel pattern. Configure the chosen HTTPS hostname’s origin as `http://192.168.4.56:3067`. The app’s built-in password login remains required. No hostname has been assumed or created.
+The app publishes on Server7 port 3067 through the existing Server3 Cloudflare Tunnel, using origin `http://192.168.4.56:3067`. The exact hostname is `d365-coffee-shop.fusenv.com`. The app’s built-in password login remains required.
+
+The devops `Configure Dynamics 365 Coffee Shop` workflow has two operations. `source-auth` copies the existing dedicated dispatch credential into the private source repository. `route` checks the Server7 origin, adds the exact tunnel ingress and proxied CNAME while preserving unrelated routes, and verifies public HTTPS. It uses existing `CLOUDFLARE_DNS_API_TOKEN` and `CLOUDFLARE_TUNNEL_API_TOKEN` repository secrets.
+
+```bash
+gh workflow run configure-dynamics-365-coffee-shop.yml --repo 8exgh/devops -f operation=route
+```
 
 ## Rollback
 

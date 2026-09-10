@@ -11,6 +11,8 @@ The repository contains two distinct applications:
 
 The companion is **not an installation or emulation of Microsoft Dynamics 365**. Its practice transactions stay in SQLite. Its Business Central page reads actual Microsoft records and can create an unposted sales order when explicitly enabled in server configuration. No practice orders are automatically synchronized or posted to Microsoft.
 
+The deployed companion is available at **https://d365-coffee-shop.fusenv.com** on Server7. Sign in as `manager` using `COFFEE_ADMIN_PASSWORD` in the local `.env`; the same credential is stored in the devops `d365-coffee-shop` environment.
+
 ## Start the Docker companion
 
 ```bash
@@ -99,21 +101,23 @@ The deployment follows `inventory-shopify` and `devops`:
 3. CI dispatches `dynamics-365-coffee-shop-deploy` to the `devops` repository.
 4. The Server7 runner deploys `sean-web-dynamics-365-coffee-shop` on port **3067**, with persistent storage at `/opt/dynamics-365-coffee-shop/data`.
 
-The matching files have been added to the local sibling `devops` checkout:
+The matching files are published in `8exgh/devops`:
 
 - `.github/workflows/deploy-dynamics-365-coffee-shop.yml`
 - `scripts/deploy-dynamics-365-coffee-shop.py`
+- `.github/workflows/configure-dynamics-365-coffee-shop.yml`
+- `scripts/configure-dynamics-365-coffee-shop-cloudflare.py`
 - `Server7/dynamics-365-coffee-shop/deploy.txt`
 
 Copies remain under `deployment/` in this repository. No other devops application files need changing.
 
 Source repository secret: `DEPLOY_TOKEN`, authorized to dispatch workflows in `8exgh/devops`.
 
-Devops secrets: `READ_PACKAGES_PAT`, `COFFEE_ADMIN_PASSWORD`, `COFFEE_SESSION_SECRET`. Microsoft integration and the cashier login are optional; see [deployment details](docs/deployment.md).
+Devops repository secret: `READ_PACKAGES_PAT`. The `d365-coffee-shop` GitHub environment holds `COFFEE_ADMIN_PASSWORD` and `COFFEE_SESSION_SECRET`. Microsoft integration and the cashier login are optional; see [deployment details](docs/deployment.md).
 
 The deployment probes a candidate container before replacing the current one, backs up its database, and restores the previous container if the replacement fails health checks. It rejects image references outside the expected repository and refuses to remove another application holding port 3067. No registry-wide image pruning runs.
 
-The expected Cloudflare Tunnel origin is `http://192.168.4.56:3067`. A public hostname must be configured separately. Server7 deployment defaults to secure cookies for HTTPS access; deliberate LAN-only HTTP access needs `COFFEE_SECURE_COOKIES=false` in devops variables.
+The Cloudflare Tunnel origin is `http://192.168.4.56:3067` for `d365-coffee-shop.fusenv.com`. The configuration workflow provisions the exact hostname while preserving other tunnel routes and verifies public HTTPS. Server7 deployment defaults to secure cookies for HTTPS access; deliberate LAN-only HTTP access needs `COFFEE_SECURE_COOKIES=false` in devops variables.
 
 ## Development and validation
 

@@ -31,7 +31,7 @@ def simulation(tmp_path, monkeypatch):
             else:
                 candidate = query.removeprefix('name=^/').removesuffix('$')
                 output = candidate if candidate in state['containers'] else ''
-        elif args[0] == 'run':
+        elif args[0] == 'run' and '--name' in args:
             state['containers'][args[args.index('--name') + 1]] = args[-1]
         elif args[0] == 'rm':
             state['containers'].pop(args[-1], None)

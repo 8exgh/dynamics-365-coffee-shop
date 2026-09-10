@@ -30,10 +30,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.READ_PACKAGES_PAT }}
-      - name: Prepare persistence directories
-        run: |
-          sudo install -d -m 750 -o "$(id -u)" -g "$(id -g)" /opt/dynamics-365-coffee-shop /opt/dynamics-365-coffee-shop/config /opt/dynamics-365-coffee-shop/backups
-          sudo install -d -m 750 -o 1000 -g 1000 /opt/dynamics-365-coffee-shop/data
       - name: Deploy and verify coffee shop
         env:
           COFFEE_IMAGE: ${{ inputs.image || github.event.client_payload.image }}

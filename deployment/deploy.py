@@ -73,14 +73,16 @@ def main():
     for holder in docker('ps', '--filter', f'publish={port}', '--format', '{{.Names}}').splitlines():
         if holder != container:
             raise SystemExit(f'Port {port} belongs to {holder}; deployment stopped.')
+    print('Pulling the immutable image.', flush=True)
+    docker('pull', image)
+    setup = 'install -d -m 0750 -o "$1" -g "$2" /state /state/config /state/backups; install -d -m 0750 -o 1000 -g 1000 /state/data'
+    docker('run', '--rm', '--user', '0:0', '--network', 'none', '--read-only', '-v', f'{root}:/state', '--entrypoint', 'sh', image, '-eu', '-c', setup, 'setup', str(os.getuid()), str(os.getgid()))
     config = root / 'config' / 'runtime.env'
     temporary = config.with_suffix('.tmp')
     fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, 'w') as output:
         output.write(''.join(f'{key}={value}\n' for key, value in settings.items()))
     os.replace(temporary, config)
-    print('Pulling the immutable image.', flush=True)
-    docker('pull', image)
     remove(candidate)
     common = ['--env-file', str(config), '--read-only', '--tmpfs', '/tmp:size=64m,mode=1777', '--cap-drop=ALL', '--security-opt=no-new-privileges:true', '--init', '--log-opt', 'max-size=10m', '--log-opt', 'max-file=3']
     try:
