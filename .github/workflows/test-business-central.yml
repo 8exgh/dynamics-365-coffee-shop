@@ -1,0 +1,32 @@
+name: Exercise Native Business Central
+on:
+  workflow_dispatch:
+    inputs:
+      accept_microsoft_eula:
+        description: Accept Microsoft Business Central sandbox container license terms
+        type: boolean
+        required: true
+        default: false
+permissions:
+  contents: read
+jobs:
+  exercise:
+    if: inputs.accept_microsoft_eula
+    runs-on: [self-hosted, Windows, X64, bc-sandbox]
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create sandbox and run native posting tests
+        shell: powershell
+        env:
+          BC_SANDBOX_PASSWORD: ${{ secrets.BC_SANDBOX_PASSWORD }}
+        run: |
+          if (-not $env:BC_SANDBOX_PASSWORD) { throw 'Set BC_SANDBOX_PASSWORD on this repository.' }
+          $Password = ConvertTo-SecureString $env:BC_SANDBOX_PASSWORD -AsPlainText -Force
+          $Credential = New-Object System.Management.Automation.PSCredential('coffeeadmin', $Password)
+          .\scripts\New-CoffeeSandbox.ps1 -AcceptEula -Credential $Credential -RunTests
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coffee-native-test-results
+          path: C:\ProgramData\BcContainerHelper\CoffeeShop\coffee-tests.xml

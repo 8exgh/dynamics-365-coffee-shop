@@ -1,0 +1,62 @@
+name: Configure Dynamics 365 Coffee Shop
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Configure source dispatch credentials or the public route
+        type: choice
+        options: [source-auth, route]
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: configure-dynamics-365-coffee-shop
+  cancel-in-progress: false
+jobs:
+  source-auth:
+    if: inputs.operation == 'source-auth'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Set the dedicated repository dispatch credential
+        env:
+          GH_TOKEN: ${{ secrets.PROVISION_GH_TOKEN }}
+          DEPLOY_TOKEN: ${{ secrets.PROVISION_DEPLOY_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$GH_TOKEN"
+          test -n "$DEPLOY_TOKEN"
+          printf '%s' "$DEPLOY_TOKEN" | gh secret set DEPLOY_TOKEN --repo 8exgh/dynamics-365-coffee-shop
+  origin:
+    if: inputs.operation == 'route'
+    runs-on: [self-hosted, linux, x64, server7]
+    timeout-minutes: 5
+    steps:
+      - name: Verify the coffee origin on Server7
+        run: |
+          set -euo pipefail
+          curl -fsS http://127.0.0.1:3067/api/health | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["status"] == "ok" and d["service"] == "coffee-operations"'
+  route:
+    needs: origin
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Configure the exact hostname and preserve other routes
+        env:
+          CF_DNS_TOKEN: ${{ secrets.CLOUDFLARE_DNS_API_TOKEN }}
+          CF_TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_API_TOKEN }}
+        run: python3 scripts/configure-dynamics-365-coffee-shop-cloudflare.py
+      - name: Verify public HTTPS
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            if curl -fsS --max-time 10 https://d365-coffee-shop.fusenv.com/api/health | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["status"] == "ok" and d["service"] == "coffee-operations"'; then
+              echo 'https://d365-coffee-shop.fusenv.com is live on Server7' >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 5
+          done
+          exit 1

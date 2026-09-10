@@ -1,0 +1,32 @@
+name: dynamics-365-coffee-shop
+services:
+  coffee:
+    image: ${COFFEE_IMAGE:-dynamics-365-coffee-shop:local}
+    build:
+      context: .
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-local}
+    restart: unless-stopped
+    init: true
+    env_file: .env
+    environment:
+      COFFEE_DATABASE: /app/data/coffee.db
+      COFFEE_STATIC: /app/web/dist
+    ports:
+      - "${COFFEE_BIND_ADDRESS:-127.0.0.1}:${COFFEE_HOST_PORT:-3065}:3000"
+    volumes:
+      - coffee-data:/app/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+volumes:
+  coffee-data:

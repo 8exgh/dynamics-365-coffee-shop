@@ -1,0 +1,51 @@
+name: Deploy Dynamics 365 Coffee Shop to Server7
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: Immutable GHCR image digest or sha tag
+        required: true
+        type: string
+  repository_dispatch:
+    types: [dynamics-365-coffee-shop-deploy]
+permissions:
+  contents: read
+concurrency:
+  group: deploy-dynamics-365-coffee-shop-server7
+  cancel-in-progress: false
+env:
+  CONTAINER_NAME: sean-web-dynamics-365-coffee-shop
+  HOST_PORT: '3067'
+jobs:
+  deploy:
+    environment: d365-coffee-shop
+    runs-on: [self-hosted, linux, x64, server7]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.READ_PACKAGES_PAT }}
+      - name: Prepare persistence directories
+        run: |
+          sudo install -d -m 750 -o "$(id -u)" -g "$(id -g)" /opt/dynamics-365-coffee-shop /opt/dynamics-365-coffee-shop/config /opt/dynamics-365-coffee-shop/backups
+          sudo install -d -m 750 -o 1000 -g 1000 /opt/dynamics-365-coffee-shop/data
+      - name: Deploy and verify coffee shop
+        env:
+          COFFEE_IMAGE: ${{ inputs.image || github.event.client_payload.image }}
+          COFFEE_ADMIN_PASSWORD: ${{ secrets.COFFEE_ADMIN_PASSWORD }}
+          COFFEE_SESSION_SECRET: ${{ secrets.COFFEE_SESSION_SECRET }}
+          COFFEE_CASHIER_PASSWORD: ${{ secrets.COFFEE_CASHIER_PASSWORD }}
+          COFFEE_SECURE_COOKIES: ${{ vars.COFFEE_SECURE_COOKIES || 'true' }}
+          BC_TENANT_ID: ${{ secrets.COFFEE_BC_TENANT_ID }}
+          BC_ENVIRONMENT: ${{ vars.COFFEE_BC_ENVIRONMENT || 'Sandbox' }}
+          BC_COMPANY_ID: ${{ secrets.COFFEE_BC_COMPANY_ID }}
+          BC_CLIENT_ID: ${{ secrets.COFFEE_BC_CLIENT_ID }}
+          BC_CLIENT_SECRET: ${{ secrets.COFFEE_BC_CLIENT_SECRET }}
+          BC_WEB_URL: ${{ vars.COFFEE_BC_WEB_URL || 'https://businesscentral.dynamics.com' }}
+          BC_ALLOW_WRITES: ${{ vars.COFFEE_BC_ALLOW_WRITES || 'false' }}
+        run: python3 scripts/deploy-dynamics-365-coffee-shop.py

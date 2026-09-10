@@ -1,0 +1,13 @@
+{
+  "id": "c34ecdd3-b619-4ea8-9fd9-ccca33769a59",
+  "name": "Eight Examples Coffee Tests",
+  "publisher": "Eight Examples",
+  "version": "1.0.0.0",
+  "platform": "28.0.0.0",
+  "application": "28.0.0.0",
+  "runtime": "17.0",
+  "target": "Cloud",
+  "idRanges": [{ "from": 50150, "to": 50179 }],
+  "dependencies": [{ "id": "5370720e-7c79-4392-a09b-749c20ea969a", "name": "Eight Examples Coffee Shop", "publisher": "Eight Examples", "version": "1.0.0.0" }],
+  "features": ["NoImplicitWith"]
+}
